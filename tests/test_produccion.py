@@ -481,7 +481,7 @@ class PruebasLineaDeComandos(unittest.TestCase):
     def test_version(self):
         with contextlib.redirect_stdout(io.StringIO()) as salida, self.assertRaises(SystemExit):
             cli_main.main(["--version"])
-        self.assertIn("1.1.0", salida.getvalue())
+        self.assertIn("1.1.1", salida.getvalue())
 
 
 

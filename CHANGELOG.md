@@ -1,6 +1,6 @@
 # Cambios
 
-## Sin publicar
+## 1.1.1 — 2026-10-13
 
 Correcciones tras la revisión del código de la versión 1.1.0.
 

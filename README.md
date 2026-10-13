@@ -8,7 +8,7 @@ Por cada convenio guarda:
 - **Texto** de la publicación oficial (BOE, boletín provincial o autonómico), comprimido en la base de datos.
 - **Tablas salariales** detectadas automáticamente en la publicación.
 
-Versión **1.1.0**. Novedades en [CHANGELOG.md](CHANGELOG.md). Para publicar el panel en un servidor con varios usuarios, ver [PRODUCCION.md](PRODUCCION.md).
+Versión **1.1.1**. Novedades en [CHANGELOG.md](CHANGELOG.md). Para publicar el panel en un servidor con varios usuarios, ver [PRODUCCION.md](PRODUCCION.md).
 
 ## Fuentes
 
