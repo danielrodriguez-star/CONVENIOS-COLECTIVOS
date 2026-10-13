@@ -1,0 +1,10 @@
+[Unit]
+Description=Copia diaria de la base de datos de convenios (08:00)
+
+[Timer]
+OnCalendar=*-*-* 08:00:00
+Persistent=true
+Unit=convenios-copia.service
+
+[Install]
+WantedBy=timers.target

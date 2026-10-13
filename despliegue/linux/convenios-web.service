@@ -1,0 +1,27 @@
+[Unit]
+Description=Panel de convenios colectivos (producción)
+Documentation=file:///opt/convenios/PRODUCCION.md
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=convenios
+Group=convenios
+WorkingDirectory=/opt/convenios
+EnvironmentFile=/etc/convenios/convenios.env
+ExecStart=/opt/convenios/.venv/bin/python -m convenios web --produccion --host 127.0.0.1 --puerto 8000
+StateDirectory=convenios
+Restart=on-failure
+RestartSec=5
+NoNewPrivileges=yes
+PrivateTmp=yes
+ProtectSystem=strict
+ProtectHome=yes
+ProtectKernelTunables=yes
+ProtectControlGroups=yes
+RestrictSUIDSGID=yes
+LockPersonality=yes
+
+[Install]
+WantedBy=multi-user.target

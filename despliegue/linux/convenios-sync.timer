@@ -1,0 +1,11 @@
+[Unit]
+Description=Actualización diaria de convenios colectivos (07:30)
+
+[Timer]
+OnCalendar=*-*-* 07:30:00
+RandomizedDelaySec=10min
+Persistent=true
+Unit=convenios-sync.service
+
+[Install]
+WantedBy=timers.target

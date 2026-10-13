@@ -1,0 +1,25 @@
+[Unit]
+Description=Actualización diaria de convenios colectivos
+Documentation=file:///opt/convenios/PRODUCCION.md
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+# Código de salida: 0 correcto; 2 con avisos o errores; 3 si ya hay otra sincronización; 130 interrumpida.
+# Cualquier código distinto de 0 deja la unidad en estado «failed».
+Type=oneshot
+User=convenios
+Group=convenios
+WorkingDirectory=/opt/convenios
+EnvironmentFile=/etc/convenios/convenios.env
+ExecStart=/opt/convenios/.venv/bin/python -m convenios sync
+StateDirectory=convenios
+TimeoutStartSec=6h
+NoNewPrivileges=yes
+PrivateTmp=yes
+ProtectSystem=strict
+ProtectHome=yes
+ProtectKernelTunables=yes
+ProtectControlGroups=yes
+RestrictSUIDSGID=yes
+LockPersonality=yes
