@@ -270,7 +270,9 @@ Hay 80 pruebas. Con cobertura: `python -m coverage run --source=convenios -m uni
 
 ## Licencia
 
-El proyecto **todavía no tiene licencia**. Hasta que su autor elija una, no se concede permiso para reutilizar ni redistribuir el código.
+**MIT**, en el archivo [LICENSE](LICENSE). Puedes usar, copiar, modificar, fusionar, publicar, distribuir, sublicenciar y vender copias del software, incluso con fines comerciales, siempre que conserves el aviso de copyright y el texto de la licencia. El software se ofrece «tal cual», sin garantía de ningún tipo.
+
+La licencia cubre **el código de este proyecto**, no los datos que recoge. Los convenios, sus textos y sus tablas salariales proceden de fuentes oficiales (REGCON, BOE y boletines provinciales y autonómicos) y se rigen por sus propias condiciones de reutilización: al reutilizarlos, cita la fuente y la fecha de consulta (ver «Fuentes y aviso legal»).
 
 ## Fuentes y aviso legal
 

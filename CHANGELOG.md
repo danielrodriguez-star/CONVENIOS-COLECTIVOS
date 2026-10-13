@@ -1,5 +1,19 @@
 # Cambios
 
+## Sin publicar
+
+Sin cambios en el programa: solo licencia y documentación.
+
+### Licencia
+
+- El proyecto pasa a tener licencia **MIT**, en el archivo `LICENSE`. Hasta ahora no tenía ninguna y el README lo decía expresamente: sin licencia no se concedía permiso para reutilizar ni redistribuir el código. La licencia cubre el código, no los datos recogidos, que proceden de fuentes oficiales y se rigen por sus propias condiciones de reutilización.
+
+### Documentación
+
+- README, apartado «Licencia»: sustituye el aviso de «todavía no tiene licencia» por las condiciones de la MIT y aclara la diferencia entre el código y los datos.
+- PRODUCCION.md, lista de comprobación: marcada la licencia como existente.
+- `AUDITORIA.md` no se modifica: sus secciones 1 a 9 describen la versión 1.0.0 tal como se auditó y quedan como registro histórico, incluido el hallazgo B5 («licencia pendiente de elegir»), que esta entrada deja resuelto.
+
 ## 1.1.2 — 2026-10-13
 
 El README explica ahora, paso a paso, cómo arrancar el programa la primera vez. Documentación, sin cambios en el programa.
