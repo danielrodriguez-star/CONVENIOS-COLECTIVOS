@@ -1,0 +1,18 @@
+# Versiones exactas con las que se ha probado el programa (Python 3.13, Linux, 2026-10-09; 67 pruebas OK).
+# Para instalar: python -m pip install -r requirements-lock.txt
+blinker==1.9.0
+certifi==2026.7.22
+charset-normalizer==3.5.2
+click==8.5.0
+Flask==3.1.3
+idna==3.20
+itsdangerous==2.2.0
+Jinja2==3.1.6
+lxml==6.1.3
+MarkupSafe==3.0.4
+Protego==0.7.0
+pymupdf==1.28.2
+requests==2.34.2
+urllib3==2.8.0
+waitress==3.0.2
+Werkzeug==3.1.9

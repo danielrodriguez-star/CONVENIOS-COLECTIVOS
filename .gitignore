@@ -1,0 +1,12 @@
+# Datos locales: base de datos, copias, registros y bloqueos. No se versionan.
+datos/
+.venv/
+venv/
+__pycache__/
+*.pyc
+.coverage
+htmlcov/
+*.lock
+build/
+dist/
+*.egg-info/

@@ -1,0 +1,6 @@
+requests>=2.31
+lxml>=5.0
+pymupdf>=1.24
+flask>=3.0
+protego>=0.3
+waitress>=3.0
