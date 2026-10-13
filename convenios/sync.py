@@ -29,21 +29,65 @@ def _por_bloques(elementos, tam):
         yield elementos[i:i + tam]
 
 
-# --- 1. BOE ------------------------------------------------------------------
-def sincronizar_boe(con, desde, hasta):
-    dias = [desde + dt.timedelta(days=i) for i in range((hasta - desde).days + 1)]
+# --- Días pendientes ----------------------------------------------------------
+# Un día que falla o cuyo listado no se completa se guarda en `dias_pendientes`. Cada sincronización
+# lo vuelve a consultar aunque ya esté fuera de la ventana. Tras MAX_INTENTOS_DIA intentos fallidos se
+# abandona: se registra en el log y en el resumen, y deja de bloquear la ventana. Así un día que no
+# se puede completar nunca hace crecer la ventana sin límite ni deja la sincronización «atención» para siempre.
+MAX_INTENTOS_DIA = 5
 
+
+def _rango(desde, hasta):
+    return [desde + dt.timedelta(days=i) for i in range((hasta - desde).days + 1)]
+
+
+def _dias_a_consultar(con, fuente, desde, hasta):
+    """Días de la ventana más los que quedaron pendientes en ejecuciones anteriores (sin repetir, ordenados)."""
+    pendientes = {dt.date.fromisoformat(r[0]) for r in con.execute(
+        "SELECT dia FROM dias_pendientes WHERE fuente = ?", (fuente,))}
+    return sorted(set(_rango(desde, hasta)) | pendientes)
+
+
+def _resolver_dia(con, fuente, dia):
+    con.execute("DELETE FROM dias_pendientes WHERE fuente = ? AND dia = ?", (fuente, dia.isoformat()))
+
+
+def _registrar_fallo(con, fuente, dia, motivo, pendientes, abandonados):
+    """Anota un intento fallido. Añade el día a «pendientes» o, si se agotaron los intentos, a «abandonados»."""
+    con.execute(
+        """INSERT INTO dias_pendientes (fuente, dia, intentos, motivo, ultima) VALUES (?,?,1,?,?)
+           ON CONFLICT(fuente, dia) DO UPDATE SET intentos = intentos + 1, motivo = excluded.motivo,
+                                                  ultima = excluded.ultima""",
+        (fuente, dia.isoformat(), (motivo or "")[:300], db.ahora()))
+    intentos = con.execute("SELECT intentos FROM dias_pendientes WHERE fuente = ? AND dia = ?",
+                           (fuente, dia.isoformat())).fetchone()[0]
+    if intentos < MAX_INTENTOS_DIA:
+        pendientes.append(dia.isoformat())
+        return
+    _resolver_dia(con, fuente, dia)
+    abandonados.append(dia.isoformat())
+    log(f"AVISO: {fuente} {dia}: se abandona tras {intentos} intentos sin completarse ({motivo}). "
+        f"Para volver a consultarlo: sync --desde {dia} --hasta {dia}")
+
+
+# --- 1. BOE ------------------------------------------------------------------
+def sincronizar_boe(con, dias):
+    """Sumario del BOE de cada día de la lista. Devuelve un diccionario con el número de convenios,
+    los errores, los días pendientes y los abandonados."""
     def trabajar(dia):
         try:
             return dia, boe.sumario(dia), None
         except Exception as e:  # noqa: BLE001
             return dia, [], f"{dia}: {type(e).__name__}: {e}"
 
-    n, errores = 0, []
+    n, errores, pendientes, abandonados = 0, [], [], []
     with ThreadPoolExecutor(4) as pool:
         for dia, items, error in pool.map(trabajar, dias):
             if error:
                 errores.append(error)
+                _registrar_fallo(con, "boe", dia, error, pendientes, abandonados)
+            else:
+                _resolver_dia(con, "boe", dia)
             for it in items:
                 if not it.get("identificador") or not boe.es_convenio(it):
                     continue
@@ -59,8 +103,9 @@ def sincronizar_boe(con, desde, hasta):
                      it["url_html"], it["url_pdf"], it["url_xml"], db.ahora()))
                 n += 1
     con.commit()
-    log(f"BOE: {n} disposiciones de convenios en {len(dias)} días ({len(errores)} errores)")
-    return n, errores
+    log(f"BOE: {n} disposiciones de convenios en {len(dias)} días ({len(errores)} errores, "
+        f"{len(pendientes)} pendientes)")
+    return {"convenios": n, "errores": errores, "pendientes": pendientes, "abandonados": abandonados}
 
 
 # --- 2. REGCON: listado de trámites -------------------------------------------
@@ -111,29 +156,37 @@ def _guardar_filas(con, filas):
     return nuevos
 
 
-def sincronizar_listado(con, desde, hasta, hilos=config.REGCON_HILOS):
-    """Listado diario: cada día se consulta por separado (ver regcon.listar)."""
-    dias = [desde + dt.timedelta(days=i) for i in range((hasta - desde).days + 1)]
+def sincronizar_listado(con, dias, hilos=config.REGCON_HILOS):
+    """Listado diario de REGCON para cada día de la lista (ver regcon.listar).
+
+    Devuelve filas, nuevos, errores y avisos de esta ejecución, y los días que quedan pendientes
+    o abandonados (la ejecución es correcta solo si no queda ninguno pendiente)."""
     vistos = nuevos = 0
-    errores, avisos = [], []
+    errores, avisos, pendientes, abandonados = [], [], [], []
     with ThreadPoolExecutor(hilos) as pool:
         for n, (dia, total, filas, completo, error) in enumerate(pool.map(_listar_dia, dias), 1):
             if error:
                 errores.append(error)
                 log(f"ERROR en el listado de REGCON {error}")
+                _registrar_fallo(con, "regcon", dia, error, pendientes, abandonados)
                 continue
             nuevos += _guardar_filas(con, filas)
             vistos += len(filas)
-            if not completo:
-                avisos.append(f"{dia}: listado incompleto ({len(filas)} trámites; REGCON informa de {total})")
+            if completo:
+                _resolver_dia(con, "regcon", dia)
+            else:
+                aviso = f"{dia}: listado incompleto ({len(filas)} trámites; REGCON informa de {total})"
+                avisos.append(aviso)
+                _registrar_fallo(con, "regcon", dia, aviso, pendientes, abandonados)
             if filas:
                 log(f"REGCON {dia}: {len(filas)} trámites")
             if n % 10 == 0:
                 con.commit()
     con.commit()
-    log(f"REGCON listado {desde}..{hasta}: {vistos} trámites únicos, {nuevos} nuevos, "
-        f"{len(errores)} días con error, {len(avisos)} avisos")
-    return {"filas": vistos, "nuevos": nuevos, "errores": errores, "avisos": avisos}
+    log(f"REGCON listado: {len(dias)} días, {vistos} trámites únicos, {nuevos} nuevos, "
+        f"{len(errores)} días con error, {len(avisos)} avisos, {len(pendientes)} pendientes")
+    return {"filas": vistos, "nuevos": nuevos, "errores": errores, "avisos": avisos,
+            "pendientes": pendientes, "abandonados": abandonados}
 
 
 # --- 3. REGCON: fichas (estado, enlace a la publicación) ----------------------
@@ -309,10 +362,16 @@ def recalcular_convenios(con):
 
 
 # --- Orquestación -----------------------------------------------------------------
-def ultima_ejecucion_ok(con):
+def ultima_ejecucion_completa(con):
+    """Fecha final de la última ejecución que llegó al final (aunque quedaran días pendientes).
+
+    Los días que fallaron ya están en `dias_pendientes`, así que la ventana puede avanzar con ellos:
+    si esperara a una ejecución «correcta», una avería persistente haría crecer la ventana sin límite."""
     for r in con.execute("SELECT hasta, resumen FROM ejecuciones ORDER BY id DESC"):
         try:
-            if json.loads(r["resumen"] or "{}").get("ok"):
+            res = json.loads(r["resumen"] or "{}")
+            # Las ejecuciones anteriores a «completa» eran correctas, así que también valen.
+            if res.get("completa") or res.get("ok"):
                 return dt.date.fromisoformat(r["hasta"])
         except (ValueError, TypeError):
             continue
@@ -352,8 +411,9 @@ def sincronizar(desde=None, hasta=None, boe_on=True, documentos_on=True, reinten
     hoy = dt.date.today()
     hasta = hasta or hoy
     if desde is None:
-        ult = ultima_ejecucion_ok(con)
-        # Ventana por defecto: desde la última ejecución correcta (con 7 días de margen), sin pasar de 365 días.
+        ult = ultima_ejecucion_completa(con)
+        # Ventana por defecto: desde la última ejecución completa (con 7 días de margen), sin pasar de 365 días.
+        # Los días pendientes se consultan siempre, estén o no dentro de la ventana.
         desde = max((ult - dt.timedelta(days=7)) if ult else hoy - dt.timedelta(days=365),
                     hoy - dt.timedelta(days=365))
     if desde > hasta:
@@ -364,10 +424,13 @@ def sincronizar(desde=None, hasta=None, boe_on=True, documentos_on=True, reinten
     resumen = {"ok": False, "desde": desde.isoformat(), "hasta": hasta.isoformat()}
     log(f"=== Sincronización de {desde} a {hasta} ===")
     try:
+        boe_pendientes = []
         if boe_on:
-            n, errs = sincronizar_boe(con, desde, hasta)
-            resumen["boe"] = {"convenios": n, "errores": errs[:20]}
-        listado = sincronizar_listado(con, desde, hasta)
+            res_boe = sincronizar_boe(con, _dias_a_consultar(con, "boe", desde, hasta))
+            resumen["boe"] = {"convenios": res_boe["convenios"], "errores": res_boe["errores"][:20],
+                              "pendientes": res_boe["pendientes"], "abandonados": res_boe["abandonados"]}
+            boe_pendientes = res_boe["pendientes"]
+        listado = sincronizar_listado(con, _dias_a_consultar(con, "regcon", desde, hasta))
         resumen["regcon_listado"] = {k: (v[:20] if isinstance(v, list) else v) for k, v in listado.items()}
         ok, err = sincronizar_fichas(con)
         resumen["regcon_fichas"] = {"ok": ok, "error": err}
@@ -379,9 +442,10 @@ def sincronizar(desde=None, hasta=None, boe_on=True, documentos_on=True, reinten
                 con.commit()
             resumen["documentos"] = sincronizar_documentos(con)
         resumen["convenios"] = recalcular_convenios(con)
-        # Un día con avisos (listado incompleto) no cuenta como correcto: así la siguiente
-        # ejecución vuelve a empezar antes de ese día y no lo pierde.
-        resumen["ok"] = not listado["errores"] and not listado["avisos"]
+        resumen["completa"] = True  # llegó al final: la ventana de la siguiente ejecución puede partir de aquí
+        # Correcta solo si no queda ningún día pendiente. Un día pendiente se reintenta en la siguiente
+        # ejecución (hasta MAX_INTENTOS_DIA veces) aunque la ventana avance.
+        resumen["ok"] = not listado["pendientes"] and not boe_pendientes
     finally:
         con.execute("UPDATE ejecuciones SET fin = ?, resumen = ? WHERE id = ?",
                     (db.ahora(), json.dumps(resumen, ensure_ascii=False), eid))

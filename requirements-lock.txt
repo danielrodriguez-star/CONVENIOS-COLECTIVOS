@@ -1,4 +1,4 @@
-# Versiones exactas con las que se ha probado el programa (Python 3.13, Linux, 2026-10-09; 67 pruebas OK).
+# Versiones exactas con las que se ha probado el programa (Python 3.13, Linux; pruebas OK).
 # Para instalar: python -m pip install -r requirements-lock.txt
 blinker==1.9.0
 certifi==2026.7.22

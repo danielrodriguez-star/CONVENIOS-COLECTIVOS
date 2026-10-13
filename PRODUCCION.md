@@ -103,7 +103,7 @@ Todas las opciones son variables de entorno. Sin ninguna definida, el programa u
 
 ## 6. Decisiones de política
 
-**robots.txt (`CONVENIOS_ROBOTS=respetar`).** Antes de pedir una publicación, el programa lee el `robots.txt` del servidor (con caché de 24 h y reintento a los 10 min si no se puede leer). Si la regla prohíbe la dirección, la publicación queda como «bloqueada por robots.txt». Si el `robots.txt` no se puede leer, la publicación queda pendiente y se reintenta en la siguiente sincronización.
+**robots.txt (`CONVENIOS_ROBOTS=respetar`).** Antes de pedir una publicación, el programa lee el `robots.txt` del servidor (con caché de 24 h y reintento a los 10 min si no se puede leer). Si la regla prohíbe la dirección, la publicación queda como «bloqueada por robots.txt». Si el `robots.txt` no se puede leer, la publicación queda pendiente y se reintenta en la siguiente sincronización. Las redirecciones no se siguen automáticamente: cada salto (hasta 5) se comprueba con `robots.txt` como una petición nueva, así que una dirección permitida que redirige a una ruta prohibida queda bloqueada.
 
 Textos ya guardados antes de esta versión: `python -m convenios depurar-robots` los lista. Con los datos de la versión 1.1.0 había 848 textos de direcciones prohibidas (304 del XML del BOE y 544 de otros 17 servidores); además, 156 textos no se pudieron comprobar porque el `robots.txt` de su servidor no respondió en ese momento. Si se borran todos los textos prohibidos, 663 convenios de 1.530 que tienen texto se quedarían sin él. Si además el BOE se vuelve a descargar de su PDF (permitido), la cifra baja a 461. Por eso el borrado no se hace solo: `depurar-robots --aplicar` hace antes una copia y luego recalcula los convenios.
 

@@ -58,7 +58,8 @@ def documento_xml(identificador):
     """(texto, tablas) de una disposición del BOE, leídos de su XML oficial."""
     r = pedir(None, "GET", config.BOE_XML.format(id=identificador))
     r.raise_for_status()
-    raiz = etree.fromstring(r.content)
+    # Sin resolver entidades externas ni acceder a la red: el XML no puede leer ficheros locales.
+    raiz = etree.fromstring(r.content, etree.XMLParser(resolve_entities=False, no_network=True))
     # El cuerpo es el hijo directo <texto> de <documento>; hay otros <texto> dentro de <analisis>.
     cuerpo = raiz.find("texto")
     if cuerpo is None:

@@ -62,7 +62,7 @@ python -m convenios copia
 ```
 
 - `sync --desde … --hasta …`: carga inicial de 12 meses. Tarda horas, sobre todo por las publicaciones. Si se interrumpe, basta con repetirla: lo ya guardado no se pierde.
-- `sync`: actualización desde la última ejecución correcta, con 7 días de solape.
+- `sync`: actualización desde la última ejecución completa, con 7 días de solape. Los días pendientes (ver `dias_pendientes`) se vuelven a consultar aparte.
 - `web`: panel en http://127.0.0.1:8000. Se detiene con Ctrl+C.
 - `estado`: resumen de la base de datos. Con `estado --comprobar` solo muestra si la instalación está bien (ver «Códigos de salida»).
 - `exportar`: genera los CSV en `datos/exportaciones/`.
@@ -81,7 +81,7 @@ Para ver todas las opciones: `python -m convenios --help` y `python -m convenios
 - Por defecto solo es accesible desde este equipo (http://127.0.0.1:8000 o http://localhost:8000).
 - Secciones: **Buscar** (por nombre, código o ámbito; solo convenios con tablas salariales), **ficha** de cada convenio (tablas salariales con su contexto y el enlace al original, otras tablas y todos sus trámites), **Texto** de cada publicación, **Seguimiento** (términos que sigues, con los trámites nuevos desde tu última visita), **BOE** (últimos convenios publicados), **Estado** (cifras, ejecuciones y errores) y **CSV**.
 - `http://127.0.0.1:8000/salud` devuelve el estado de la instalación en formato JSON, para vigilarlo desde otra herramienta.
-- Para verlo desde otros equipos o con usuario y contraseña, usa el modo de producción (`web --produccion`), descrito en [PRODUCCION.md](PRODUCCION.md).
+- Sin `--produccion`, el panel solo atiende a este equipo: otra dirección de `--host` (p. ej. `0.0.0.0`, para la red) se rechaza. Para verlo desde otros equipos, usa el modo de producción (`web --produccion --host 0.0.0.0`), que exige usuario y contraseña. Está descrito en [PRODUCCION.md](PRODUCCION.md).
 
 ## Actualización diaria
 
@@ -114,7 +114,7 @@ Si una sincronización ya está en marcha (la programada y otra lanzada a mano, 
 | Código | Significado |
 |---|---|
 | 0 | Correcto |
-| 2 | Terminó con avisos o errores de REGCON (p. ej., un día con listado incompleto). Ese día se vuelve a consultar en la siguiente ejecución |
+| 2 | Terminó con días pendientes: un día con error o con listado incompleto de REGCON, o con error en el BOE. Cada día pendiente se vuelve a consultar en las ejecuciones siguientes; tras 5 intentos fallidos se abandona, queda registrado en `datos/sincronizacion.log` y se puede repetir con `sync --desde AAAA-MM-DD --hasta AAAA-MM-DD` |
 | 3 | Ya hay otra sincronización en marcha. No se ha hecho nada |
 | 130 | Interrumpida con Ctrl+C. Lo ya guardado se conserva |
 | 1 | Error inesperado. Queda registrado en `datos/registros/` |
@@ -145,6 +145,7 @@ Para cambiar una variable en Windows, por ejemplo: `setx CONVENIOS_DATOS "D:\con
   - `documentos`: publicaciones oficiales (texto comprimido, estado y errores). Estados: `ok`, `sin_texto`, `error` y `bloqueada` (prohibida por `robots.txt`).
   - `tablas`: tablas extraídas de las publicaciones, con la marca de tabla salarial.
   - `boe_disposiciones`: convenios publicados en el BOE.
+  - `dias_pendientes`: días de REGCON o del BOE que no se completaron, con sus intentos. Se vuelven a consultar hasta que van bien o se agotan los intentos.
   - `ejecuciones`: historial de sincronizaciones.
 - `datos/seguimiento.db`: los términos que sigues en el panel. Está aparte para que el panel no compita con la sincronización.
 - `datos/sincronizacion.log`: resumen de cada ejecución, en texto.
@@ -206,7 +207,7 @@ Para comprobar que todo funciona (no modifica tus datos: usa carpetas temporales
 python -m unittest discover -s tests -v
 ```
 
-Hay 67 pruebas. Con cobertura: `python -m coverage run --source=convenios -m unittest discover -s tests` y después `python -m coverage report -m`.
+Hay 80 pruebas. Con cobertura: `python -m coverage run --source=convenios -m unittest discover -s tests` y después `python -m coverage report -m`.
 
 ## Licencia
 
@@ -252,6 +253,7 @@ convenios/
 │   └── util.py             # utilidades HTTP, fechas y texto
 ├── tests/
 │   ├── test_convenios.py   # pruebas de la base funcional
-│   └── test_produccion.py  # pruebas de robots, acceso, copias, estado, panel y CLI
+│   ├── test_produccion.py  # pruebas de robots, acceso, copias, estado, panel y CLI
+│   └── test_correcciones.py  # días pendientes, redirecciones, búsqueda, XML del BOE y acceso desde la red
 └── datos/                  # base de datos, registros, copias y exportaciones (se crea al ejecutar)
 ```
