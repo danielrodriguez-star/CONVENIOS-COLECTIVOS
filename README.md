@@ -8,7 +8,9 @@ Por cada convenio guarda:
 - **Texto** de la publicación oficial (BOE, boletín provincial o autonómico), comprimido en la base de datos.
 - **Tablas salariales** detectadas automáticamente en la publicación.
 
-Versión **1.1.1**. Novedades en [CHANGELOG.md](CHANGELOG.md). Para publicar el panel en un servidor con varios usuarios, ver [PRODUCCION.md](PRODUCCION.md).
+Versión **1.1.2**. Novedades en [CHANGELOG.md](CHANGELOG.md). Para publicar el panel en un servidor con varios usuarios, ver [PRODUCCION.md](PRODUCCION.md).
+
+La primera vez, empieza por [«Arranque paso a paso (primera vez)»](#arranque-paso-a-paso-primera-vez): **instalar el programa no lo arranca**.
 
 ## Fuentes
 
@@ -50,10 +52,67 @@ Para instalar exactamente las versiones con las que se ha probado el programa, c
 
 A partir de aquí los comandos son iguales en Windows y en macOS/Linux. Ejecútalos siempre con el entorno virtual activado (la terminal muestra su nombre al principio de la línea).
 
-## Uso
+**Aviso: instalar no es arrancar.** Al terminar la instalación solo tienes los archivos y las dependencias: el programa no se ha ejecutado ni una vez. No hay datos en la base de datos, y por eso el panel se ve vacío («0 convenios encontrados · última sincronización: todavía no se ha sincronizado»). No es un fallo ni una instalación incompleta: falta la carga inicial y el arranque, que son los pasos de la sección siguiente.
+
+## Arranque paso a paso (primera vez)
+
+Estos pasos se hacen **una sola vez**, y en este orden: cada uno necesita el anterior. Hasta que no llegues al 4, el panel no muestra ningún convenio.
+
+**1. Abre la terminal con el entorno virtual activado.** Igual que en la instalación: la terminal, **dentro de la carpeta del proyecto** (la que contiene `README.md`), y con el entorno virtual activado (`.venv\Scripts\Activate.ps1` en Windows, `source .venv/bin/activate` en macOS o Linux).
+
+**2. Comprueba que la instalación sirve.**
 
 ```
-python -m convenios sync --desde 2025-10-08 --hasta 2026-10-08
+python -m convenios --version
+```
+
+Debe responder `convenios 1.1.2`. Si dice que no reconoce el módulo `convenios`, casi siempre es que el entorno virtual no está activado o que la terminal no está en la carpeta del proyecto.
+
+**3. Carga los datos (solo la primera vez; tarda horas).**
+
+```
+python -m convenios sync --desde 2025-10-13 --hasta 2026-10-13
+```
+
+- Pon las fechas del periodo que quieras tener. Los 12 meses del ejemplo son lo recomendado; para ver el panel antes, empieza por tres meses.
+- Necesita conexión a Internet y **ocupa la terminal mientras dura**: puedes minimizarla y seguir usando el equipo, pero no la cierres.
+- Si se interrumpe, repite el mismo comando: lo ya guardado no se pierde y la carga continúa.
+- Sale con código 0 si todo fue bien y con 2 si algún día quedó pendiente; los días pendientes se vuelven a consultar solos en la siguiente sincronización (ver «Códigos de salida»).
+- Para una prueba rápida de minutos, sin descargar publicaciones: `python -m convenios sync --desde 2026-07-13 --hasta 2026-10-13 --sin-documentos --sin-boe` (solo REGCON, sin textos ni tablas). La carga completa sigue siendo necesaria después.
+
+Al acabar, mira cuánto hay guardado:
+
+```
+python -m convenios estado
+```
+
+**4. Arranca el panel.**
+
+```
+python -m convenios web
+```
+
+- La terminal muestra `Running on http://127.0.0.1:8000` y **no devuelve el control**: mientras esa ventana siga abierta, el panel está en marcha.
+- Abre <http://127.0.0.1:8000> en el navegador. **Deja la ventana de la terminal abierta**; si la cierras, el panel se detiene y esa dirección deja de responder.
+- Para parar el panel, vuelve a esa terminal y pulsa Ctrl+C.
+- Si el puerto 8000 ya está ocupado: `python -m convenios web --puerto 8001` y abre <http://127.0.0.1:8001>.
+- El panel solo se ve desde este equipo. Verlo desde otros equipos o publicarlo en Internet está explicado en [PRODUCCION.md](PRODUCCION.md).
+
+**5. Los días siguientes.**
+
+| Situación | Qué hacer |
+|---|---|
+| Poner al día los datos | `python -m convenios sync` (sin fechas). Tarda minutos. Si unos días fallaron, se recuperan solos |
+| Ver el panel | `python -m convenios web` otra vez, y dejar la terminal abierta. Después de reiniciar el equipo, hay que volver a arrancarlo |
+| No tener que hacer nada a mano | Programar `sync` una vez al día: ver [«Actualización diaria»](#actualización-diaria) |
+| Comprobar que todo va bien | `python -m convenios estado`, o la página «Estado» del panel |
+
+## Uso
+
+Lista completa de órdenes. Si es la primera vez, sigue antes [«Arranque paso a paso (primera vez)»](#arranque-paso-a-paso-primera-vez).
+
+```
+python -m convenios sync --desde 2025-10-13 --hasta 2026-10-13
 python -m convenios sync
 python -m convenios web
 python -m convenios estado

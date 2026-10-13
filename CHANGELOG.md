@@ -1,5 +1,15 @@
 # Cambios
 
+## Sin publicar
+
+### Documentación
+
+- **Instalar no es arrancar**: el README termina la instalación con un aviso y añade el apartado «Arranque paso a paso (primera vez)», con cinco pasos en orden: comprobar la instalación con `python -m convenios --version`, cargar los datos con `python -m convenios sync --desde … --hasta …`, arrancar con `python -m convenios web`, abrir http://127.0.0.1:8000 dejando abierta la ventana de la terminal (al cerrarla el panel se detiene), y qué hacer los días siguientes. También una carga rápida de prueba y qué hacer si el puerto 8000 está ocupado.
+
+### Pruebas
+
+- La prueba de `--version` compara con `__version__` en lugar de con un número fijo: no hay que editarla al publicar una versión. Sin cambios en el número de pruebas (80) ni en la cobertura (74 %).
+
 ## 1.1.1 — 2026-10-13
 
 Correcciones tras la revisión del código de la versión 1.1.0.
