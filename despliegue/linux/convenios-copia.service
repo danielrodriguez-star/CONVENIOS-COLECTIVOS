@@ -1,0 +1,21 @@
+[Unit]
+Description=Copia de seguridad de la base de datos de convenios
+Documentation=file:///opt/convenios/PRODUCCION.md
+After=network-online.target
+
+[Service]
+Type=oneshot
+User=convenios
+Group=convenios
+WorkingDirectory=/opt/convenios
+EnvironmentFile=/etc/convenios/convenios.env
+ExecStart=/opt/convenios/.venv/bin/python -m convenios copia
+StateDirectory=convenios
+NoNewPrivileges=yes
+PrivateTmp=yes
+ProtectSystem=strict
+ProtectHome=yes
+ProtectKernelTunables=yes
+ProtectControlGroups=yes
+RestrictSUIDSGID=yes
+LockPersonality=yes
