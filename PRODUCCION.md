@@ -187,4 +187,4 @@ Lo que debes hacer tú:
 - Las fuentes oficiales pueden cambiar sin aviso. REGCON no tiene API pública; si cambia su formulario, hay que adaptar `convenios/regcon.py`.
 - La detección de tablas salariales es heurística (ver AUDITORIA.md, A2).
 - Los servidores de boletines pueden bloquear o limitar las descargas (p. ej., la Diputación de Cuenca responde 403). El programa lo registra y no insiste.
-- Las ficheros de despliegue de Windows y la configuración de Caddy no se han probado en un servidor real en este entorno (ver el README y la sección 4).
+- Los ficheros de despliegue de Windows y la configuración de Caddy no se han probado en un servidor real en este entorno (ver el README y la sección 4).
