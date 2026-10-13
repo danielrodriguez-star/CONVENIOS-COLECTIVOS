@@ -179,7 +179,7 @@ Lo que debes hacer tú:
 - [ ] Hay al menos una copia en `datos/copias/` y se ha comprobado su integridad.
 - [ ] `CONVENIOS_HOSTS_PERMITIDOS` contiene solo el nombre público (sin comodines innecesarios).
 - [ ] Las decisiones de la sección 6 están tomadas y documentadas.
-- [ ] Existe una licencia, si el programa se va a compartir (ver README, «Licencia»).
+- [x] Existe una licencia, si el programa se va a compartir (MIT, en `LICENSE`; ver README, «Licencia»).
 
 ## 12. Límites conocidos
 
