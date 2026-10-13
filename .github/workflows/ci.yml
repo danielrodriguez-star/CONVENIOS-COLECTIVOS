@@ -1,24 +1,48 @@
-# Marcador de posición del flujo de integración continua (GitHub Actions).
-#
-# Cuando el código y las pruebas reales estén en el repositorio, sustituye este
-# fichero por el original. Según la documentación (AUDITORIA.md, hallazgo B4),
-# el flujo ejecuta las pruebas con Python 3.10 y 3.13. Plantilla de referencia:
-#
-#   name: CI
-#   on: [push, pull_request]
-#   jobs:
-#     pruebas:
-#       runs-on: ubuntu-latest
-#       strategy:
-#         matrix:
-#           python-version: ["3.10", "3.13"]
-#       steps:
-#         - uses: actions/checkout@v4
-#         - uses: actions/setup-python@v5
-#           with:
-#             python-version: ${{ matrix.python-version }}
-#         - run: python -m pip install -r requirements.txt
-#         - run: python -m unittest discover -s tests -v
-#
-# Está comentado a propósito para que GitHub no ejecute nada mientras el
-# repositorio no tenga el código completo.
+name: Pruebas
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  pruebas:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.10", "3.13"]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Instalar dependencias con versiones fijas
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements-lock.txt
+          python -m pip install pyflakes coverage
+
+      - name: Análisis estático
+        run: python -m pyflakes convenios tests auditoria
+
+      - name: Pruebas con cobertura
+        run: |
+          python -m coverage run --source=convenios -m unittest discover -s tests -v
+          python -m coverage report --fail-under=60
+
+  seguridad:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Vulnerabilidades conocidas en las dependencias
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install pip-audit
+          pip-audit -r requirements-lock.txt
