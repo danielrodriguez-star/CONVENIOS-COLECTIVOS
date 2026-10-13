@@ -130,11 +130,17 @@ def _filtros(args):
             "desde": desde, "salariales": args.get("salariales") == "1", "p": p, "aviso": aviso}
 
 
+def _patron(palabra):
+    """Patrón LIKE de «contiene»: % y _ se buscan como texto (se escapan con «\\»)."""
+    escapada = palabra.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+    return f"%{escapada}%"
+
+
 def _where(f):
     cond, params = ["1=1"], []
     for palabra in sin_acentos(f["q"]).split():
-        cond.append("busqueda LIKE ?")
-        params.append(f"%{palabra}%")
+        cond.append("busqueda LIKE ? ESCAPE '\\'")
+        params.append(_patron(palabra))
     if f["ambito"]:
         cond.append("ambito = ?")
         params.append(f["ambito"])
@@ -193,8 +199,8 @@ def _cond_texto(termino, columna="busqueda"):
     """Condición SQL: todas las palabras del término (sin acentos) aparecen en la columna."""
     cond, params = [], []
     for palabra in sin_acentos(termino).split():
-        cond.append(f"{columna} LIKE ?")
-        params.append(f"%{palabra}%")
+        cond.append(f"{columna} LIKE ? ESCAPE '\\'")
+        params.append(_patron(palabra))
     return (" AND ".join(cond) or "1=1"), params
 
 

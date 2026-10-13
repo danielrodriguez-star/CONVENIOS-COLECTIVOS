@@ -1,5 +1,23 @@
 # Cambios
 
+## Sin publicar
+
+Correcciones tras la revisión del código de la versión 1.1.0.
+
+### Corregido
+
+- **Redirecciones y robots.txt**: las redirecciones ya no se siguen sin comprobarlas. Cada salto (hasta 5) se comprueba con `robots.txt`; antes, una dirección permitida que redirigía a una ruta prohibida se descargaba igualmente.
+- **Días que no se completan**: un día con error o con listado incompleto de REGCON se guarda en `dias_pendientes` y se vuelve a consultar en cada sincronización. Tras 5 intentos fallidos se abandona, con aviso en el registro. Antes, un día así dejaba la sincronización como «atención» y hacía crecer la ventana hasta 365 días en cada ejecución.
+- **Fallos del BOE**: un día del sumario del BOE que falla impide marcar la sincronización como correcta y se reintenta. Antes se perdía sin aviso.
+- **Búsqueda**: los caracteres `%` y `_` se buscan como texto (antes actuaban como comodines).
+- **XML del BOE**: el analizador no resuelve entidades externas ni accede a la red (solo se usa con `CONVENIOS_ROBOTS=ignorar`).
+- **Panel**: sin `--produccion`, `web` ya no atiende a otras direcciones distintas de `127.0.0.1`.
+- **Documentación**: se corrigen los README de `despliegue/` que decían que los ficheros estaban pendientes de subir.
+
+### Pruebas
+
+- 80 pruebas (eran 67), en `tests/test_correcciones.py` y en `tests/test_convenios.py`. Cobertura medida: 74 %.
+
 ## 1.1.0 — 2026-10-09
 
 Versión preparada para producción. Guía de despliegue en [PRODUCCION.md](PRODUCCION.md).

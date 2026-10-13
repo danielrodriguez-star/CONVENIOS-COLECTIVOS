@@ -109,9 +109,17 @@ def sincronizar_cli(args):
     return SALIDA_OK if resumen["ok"] else SALIDA_ATENCION
 
 
+LOCALES = ("127.0.0.1", "localhost", "::1")
+
+
 def servir(args):
     from .web import crear_app
     registro.configurar("panel")
+    if not args.produccion and args.host not in LOCALES:
+        # Sin --produccion no hay usuario y contraseña obligatorios: no se atiende a otros equipos.
+        print(f"No se atiende a otros equipos ({args.host}) sin --produccion, que exige usuario y contraseña. "
+              "Usa «web --produccion --host ...» (ver PRODUCCION.md).", file=sys.stderr)
+        return SALIDA_ERROR
     app = crear_app(hosts_permitidos=args.hosts_permitidos)
     if not args.produccion:
         app.run(host=args.host, port=args.puerto, debug=False, threaded=True)
@@ -208,7 +216,8 @@ def main(argv=None):
 
     w = orden.add_parser("web", help="abre el panel web")
     w.add_argument("--host", default="127.0.0.1",
-                   help="127.0.0.1 = solo este equipo (por defecto); 0.0.0.0 = también otros equipos de la red")
+                   help="127.0.0.1 = solo este equipo (por defecto). Otra dirección (p. ej. 0.0.0.0, para la red) "
+                        "solo con --produccion")
     w.add_argument("--puerto", type=int, default=8000)
     w.add_argument("--produccion", action="store_true",
                    help="servidor de producción (waitress) con las comprobaciones de seguridad")

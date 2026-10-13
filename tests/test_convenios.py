@@ -206,10 +206,11 @@ class PruebasSincronizacion(unittest.TestCase):
             sync._bloqueo_sync.close()
             sync._bloqueo_sync = None
 
-    def test_listado_con_avisos_no_cuenta_como_correcto(self):
+    def test_listado_con_avisos_queda_pendiente_y_no_cuenta_como_correcto(self):
         _nueva_bd("sync_ok.db").close()
         dia = dt.date(2026, 1, 5)
-        listado = {"filas": 0, "nuevos": 0, "errores": [], "avisos": [f"{dia}: listado incompleto"]}
+        listado = {"filas": 0, "nuevos": 0, "errores": [], "avisos": [f"{dia}: listado incompleto"],
+                   "pendientes": [dia.isoformat()], "abandonados": []}
         with mock.patch.object(sync, "sincronizar_listado", return_value=listado), \
                 mock.patch.object(sync, "sincronizar_fichas", return_value=(0, 0)), \
                 mock.patch.object(sync, "recalcular_convenios", return_value=0):

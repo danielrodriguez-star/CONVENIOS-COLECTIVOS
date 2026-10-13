@@ -79,6 +79,17 @@ CREATE TABLE IF NOT EXISTS boe_disposiciones (
     vista         TEXT
 );
 
+-- Días que no se pudieron completar (error o listado incompleto). Se vuelven a consultar en cada
+-- sincronización hasta que van bien o se agotan los intentos (ver sync.MAX_INTENTOS_DIA).
+CREATE TABLE IF NOT EXISTS dias_pendientes (
+    fuente   TEXT NOT NULL,                  -- regcon | boe
+    dia      TEXT NOT NULL,                  -- AAAA-MM-DD
+    intentos INTEGER NOT NULL DEFAULT 0,
+    motivo   TEXT,
+    ultima   TEXT,
+    PRIMARY KEY (fuente, dia)
+);
+
 CREATE TABLE IF NOT EXISTS ejecuciones (
     id      INTEGER PRIMARY KEY AUTOINCREMENT,
     inicio  TEXT,

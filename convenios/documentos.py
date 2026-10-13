@@ -1,7 +1,7 @@
 """Descarga y lectura de publicaciones oficiales: texto y tablas, con detección de tablas salariales."""
 import logging
 import re
-from urllib.parse import urlsplit
+from urllib.parse import urljoin, urlsplit
 
 import requests
 from lxml import html as LH
@@ -157,22 +157,53 @@ def leer_acotado(r, limite=config.DOC_MAX_BYTES):
     return b"".join(trozos)
 
 
-def descargar(url):
-    """(contenido, content-type, legado). `legado` indica que se usó el TLS heredado."""
-    cabeceras = {"Accept": "application/pdf,text/html;q=0.9,*/*;q=0.5"}
+REDIRECCIONES = (301, 302, 303, 307, 308)
+MAX_REDIRECCIONES = 5
+
+
+def _pedir_salto(url, cabeceras):
+    """Una sola petición, sin seguir redirecciones. Devuelve (respuesta, si usó el TLS heredado)."""
     try:
-        r = pedir(None, "GET", url, headers=cabeceras, timeout=20, intentos=2, stream=True)
-        legado = False
+        return pedir(None, "GET", url, headers=cabeceras, timeout=20, intentos=2, stream=True,
+                     allow_redirects=False), False
     except requests.exceptions.SSLError:
         # Solo para los servidores de CONVENIOS_TLS_HEREDADO (ver PRODUCCION.md): se reintenta
         # una vez con cifrados antiguos y sin verificar el certificado.
         if urlsplit(url).hostname not in config.TLS_HEREDADO:
             raise
-        r = pedir(sesion_heredada(), "GET", url, headers=cabeceras, timeout=20, intentos=2,
-                  verify=False, stream=True)
-        legado = True
-    r.raise_for_status()
-    return leer_acotado(r), r.headers.get("content-type", "").lower(), legado
+        return pedir(sesion_heredada(), "GET", url, headers=cabeceras, timeout=20, intentos=2,
+                     verify=False, stream=True, allow_redirects=False), True
+
+
+def descargar(url):
+    """(contenido, content-type, legado). `legado` indica que se usó el TLS heredado.
+
+    Las redirecciones no las sigue requests: cada salto se comprueba con robots.txt como si fuera
+    una petición nueva. Si no, una dirección permitida podría llevar a una prohibida."""
+    cabeceras = {"Accept": "application/pdf,text/html;q=0.9,*/*;q=0.5"}
+    actual, legado = url, False
+    for salto in range(MAX_REDIRECCIONES + 1):
+        r, por_tls_heredado = _pedir_salto(actual, cabeceras)
+        legado = legado or por_tls_heredado
+        destino = r.headers.get("location")
+        if r.status_code in REDIRECCIONES or (300 <= r.status_code < 400 and destino):
+            r.close()
+            if not destino:
+                raise ValueError(f"redirección sin destino (HTTP {r.status_code})")
+            if salto == MAX_REDIRECCIONES:
+                raise ValueError(f"demasiadas redirecciones (más de {MAX_REDIRECCIONES})")
+            siguiente = urljoin(actual, destino)
+            if urlsplit(siguiente).scheme not in ("http", "https"):
+                raise ValueError("redirección a un protocolo no permitido")
+            robots.comprobar(siguiente)  # puede lanzar Bloqueada o NoDisponible
+            actual = siguiente
+            continue
+        if 300 <= r.status_code < 400:
+            r.close()
+            raise ValueError(f"redirección sin destino (HTTP {r.status_code})")
+        r.raise_for_status()
+        return leer_acotado(r), r.headers.get("content-type", "").lower(), legado
+    raise ValueError("demasiadas redirecciones")  # no se alcanza: el bucle siempre sale antes
 
 
 def _procesar_boe_xml(identificador):
