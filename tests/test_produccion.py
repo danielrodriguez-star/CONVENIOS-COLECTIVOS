@@ -24,6 +24,7 @@ sys.path.insert(0, str(RAIZ))
 os.environ.setdefault("CONVENIOS_DATOS", tempfile.mkdtemp(prefix="convenios_produccion_"))
 
 from convenios import __main__ as cli_main  # noqa: E402
+from convenios import __version__  # noqa: E402
 from convenios import acceso, config, copias, db, documentos, operacion, regcon, registro, robots, sync, util  # noqa: E402
 from convenios import web  # noqa: E402
 
@@ -481,7 +482,8 @@ class PruebasLineaDeComandos(unittest.TestCase):
     def test_version(self):
         with contextlib.redirect_stdout(io.StringIO()) as salida, self.assertRaises(SystemExit):
             cli_main.main(["--version"])
-        self.assertIn("1.1.1", salida.getvalue())
+        # Se compara con __version__: la prueba no hay que tocarla en cada versión nueva.
+        self.assertEqual(salida.getvalue().strip(), f"convenios {__version__}")
 
 
 
