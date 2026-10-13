@@ -1,6 +1,8 @@
 # Cambios
 
-## Sin publicar
+## 1.1.2 — 2026-10-13
+
+El README explica ahora, paso a paso, cómo arrancar el programa la primera vez. Documentación, sin cambios en el programa.
 
 ### Documentación
 
